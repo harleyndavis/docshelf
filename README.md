@@ -2,6 +2,8 @@
 
 A lightweight self-hosted markdown viewer. Drop `.md` files into a folder and browse them as clean, readable pages on your local network.
 
+Created through a Claude Code test session. 
+
 Built with Django and runs in Docker.
 
 ## Features
