@@ -1,0 +1,12 @@
+{% extends "markdown_viewer/base.html" %}
+
+{% block title %}{{ title }} — Markdown Docs{% endblock %}
+
+{% block content %}
+<p class="back-nav">
+  <a href="/">&larr; All documents</a>
+</p>
+<article class="prose">
+  {{ content|safe }}
+</article>
+{% endblock %}

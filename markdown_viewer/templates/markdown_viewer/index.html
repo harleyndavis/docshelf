@@ -1,0 +1,18 @@
+{% extends "markdown_viewer/base.html" %}
+
+{% block title %}Markdown Docs{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Documents</h1>
+{% if documents %}
+  <ul class="doc-list">
+    {% for doc in documents %}
+    <li>
+      <a href="{% url 'document' doc %}">{{ doc }}</a>
+    </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p style="color: #666;">No documents found. Add <code>.md</code> files to the <code>docs/</code> directory.</p>
+{% endif %}
+{% endblock %}
