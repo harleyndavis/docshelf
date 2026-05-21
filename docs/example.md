@@ -1,3 +1,11 @@
+---
+title: My Document
+category: Notes
+summary: A short description shown in the document list.
+updated: 2026-05-07
+tags: [markdown, test, example]
+read_time: 3
+---
 # Example Document
 
 Welcome to the Markdown Docs viewer.

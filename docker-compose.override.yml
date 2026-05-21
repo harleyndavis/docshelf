@@ -1,0 +1,7 @@
+services:
+  web:
+    volumes:
+      - .:/app
+    environment:
+      - DJANGO_DEBUG=true
+    command: python manage.py runserver 0.0.0.0:8000

@@ -1,7 +1,8 @@
 ---
-title: DocShelf-README.md
+title: Docshelf
+summary: The README for Docshelf, what you are in right now.
 author: harley@davisdiscovers.dev
-tags: [readme, DockShelf]
+tags: [readme, Docshelf]
 ---
 # Docshelf
 
