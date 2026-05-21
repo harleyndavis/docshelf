@@ -522,13 +522,7 @@ later, override them in a [data-theme="light"] selector.
     }
 
     /* ===== Block-specific styles loaded by index/document templates ===== */
-      {
-      % block extra_styles %
-    }
-
-      {
-      % endblock %
-    }
+    {% block extra_styles %}{% endblock %}
   </style>
 </head>
 
