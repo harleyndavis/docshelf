@@ -7,6 +7,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+RUN DJANGO_SECRET_KEY=collectstatic python manage.py collectstatic --noinput
+
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/* \
     && adduser --system --no-create-home appuser
