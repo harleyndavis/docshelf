@@ -1,97 +1,631 @@
+{% comment %}
+=================================================================
+Atelier — Markdown Viewer base template
+-----------------------------------------------------------------
+Drop-in replacement for the existing base.html. Keeps the
+{% block title %} / {% block content %} contract so existing
+views keep working.
+
+Optional context (used if present, falls back gracefully):
+- request: standard Django HttpRequest (for current path)
+
+CSS custom properties define the theme — to introduce light mode
+later, override them in a [data-theme="light"] selector.
+=================================================================
+{% endcomment %}{% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Docs{% endblock %}</title>
+  <title>{% block title %}Docshelf{% endblock %}</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400;1,8..60,500&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    /* ============================================================
+       ATELIER — deep ink, source serif, amber accent
+       ============================================================ */
+    :root {
+      --mv-bg: #15161a;
+      --mv-surface: #1c1d22;
+      --mv-surface-2: #23252b;
+      --mv-ink: #ece8df;
+      --mv-ink-soft: #a6a297;
+      --mv-ink-faint: #6f6c63;
+      --mv-rule: #2c2e34;
+      --mv-rule-strong: #3b3e46;
+      --mv-accent: #e8a23c;
+      --mv-accent-soft: #3a2c14;
+      --mv-code-bg: #23252b;
+      --mv-code-ink: #e8a23c;
+      --mv-pre-bg: #0e0f12;
+      --mv-pre-ink: #d8d4ca;
+      --mv-quote-bg: #1c1d22;
+      --mv-font-display: "Source Serif 4", Georgia, serif;
+      --mv-font-body: "Source Serif 4", Georgia, serif;
+      --mv-font-mono: "JetBrains Mono", ui-monospace, monospace;
+      --mv-radius: 4px;
+      --mv-content-w: 720px;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: var(--mv-font-body);
       font-size: 16px;
-      line-height: 1.6;
-      color: #1a1a1a;
-      background: #f8f8f8;
+      line-height: 1.65;
+      color: var(--mv-ink);
+      background: var(--mv-bg);
+      -webkit-font-smoothing: antialiased;
+      font-feature-settings: "ss01";
     }
 
-    header {
-      background: #1a1a1a;
-      padding: 0.75rem 2rem;
+    button {
+      background: none;
+      border: none;
+      padding: 0;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      text-align: left;
     }
 
-    header a {
-      color: #fff;
+    a {
+      color: inherit;
       text-decoration: none;
+    }
+
+    kbd {
+      font-family: var(--mv-font-mono);
+      font-size: 10px;
+      padding: 2px 5px;
+      border: 1px solid var(--mv-rule-strong);
+      border-radius: 4px;
+      background: var(--mv-surface);
+      color: var(--mv-ink-soft);
+      letter-spacing: 0.02em;
+    }
+
+    /* ===== Header ===== */
+    .mv-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 22px;
+      border-bottom: 1px solid var(--mv-rule);
+      background: var(--mv-bg);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .mv-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 8px;
+      margin-left: -8px;
+      border-radius: var(--mv-radius);
+      transition: background 120ms;
+    }
+
+    .mv-brand:hover {
+      background: var(--mv-surface-2);
+    }
+
+    .mv-brand-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--mv-radius);
+      background: var(--mv-ink);
+      color: var(--mv-bg);
+      display: grid;
+      place-items: center;
+    }
+
+    .mv-brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+
+    .mv-brand-title {
+      font-family: var(--mv-font-display);
       font-weight: 600;
-      font-size: 1.1rem;
+      font-size: 16px;
+      letter-spacing: -0.01em;
     }
 
-    main {
-      max-width: 860px;
-      margin: 2rem auto;
-      padding: 0 1.5rem;
+    .mv-brand-sub {
+      font-family: var(--mv-font-mono);
+      font-size: 9.5px;
+      color: var(--mv-ink-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-top: 2px;
     }
 
-    /* Markdown content styles */
-    .prose h1, .prose h2, .prose h3, .prose h4 { margin: 1.5rem 0 0.5rem; font-weight: 600; }
-    .prose h1 { font-size: 2rem; border-bottom: 2px solid #e0e0e0; padding-bottom: 0.3rem; }
-    .prose h2 { font-size: 1.5rem; border-bottom: 1px solid #e0e0e0; padding-bottom: 0.2rem; }
-    .prose h3 { font-size: 1.2rem; }
-    .prose p { margin: 0.75rem 0; }
-    .prose a { color: #0066cc; }
-    .prose ul, .prose ol { margin: 0.75rem 0 0.75rem 1.5rem; }
-    .prose li { margin: 0.25rem 0; }
-    .prose blockquote {
-      border-left: 4px solid #ccc;
-      padding: 0.5rem 1rem;
-      margin: 1rem 0;
-      color: #555;
-      background: #f0f0f0;
-    }
-    .prose pre {
-      background: #1e1e1e;
-      color: #d4d4d4;
-      padding: 1rem;
-      border-radius: 6px;
-      overflow-x: auto;
-      margin: 1rem 0;
-      font-size: 0.9rem;
-    }
-    .prose code {
-      background: #e8e8e8;
-      padding: 0.1em 0.35em;
-      border-radius: 3px;
-      font-size: 0.9em;
-    }
-    .prose pre code { background: none; padding: 0; }
-    .prose table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
-    .prose th, .prose td { border: 1px solid #ddd; padding: 0.5rem 0.75rem; }
-    .prose th { background: #f0f0f0; font-weight: 600; }
-    .prose img { max-width: 100%; height: auto; }
-    .prose hr { border: none; border-top: 1px solid #ddd; margin: 1.5rem 0; }
-
-    /* Index page */
-    .page-title { margin-bottom: 1.5rem; font-size: 1.8rem; font-weight: 600; }
-    .doc-list { list-style: none; padding: 0; }
-    .doc-list li { margin: 0.5rem 0; }
-    .doc-list a {
-      display: inline-block; padding: 0.4rem 0.75rem; border-radius: 4px;
-      background: #fff; border: 1px solid #ddd; color: #0066cc;
-      text-decoration: none; font-size: 1rem;
+    .mv-header-spacer {
+      flex: 1;
     }
 
-    /* Document page */
-    .back-nav { margin-bottom: 1.5rem; }
-    .back-nav a { color: #666; text-decoration: none; font-size: 0.9rem; }
+    .mv-search-trigger {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 10px 7px 12px;
+      border: 1px solid var(--mv-rule);
+      border-radius: var(--mv-radius);
+      background: var(--mv-surface);
+      color: var(--mv-ink-soft);
+      font-size: 13px;
+      min-width: 240px;
+      font-family: var(--mv-font-body);
+      transition: border-color 120ms, color 120ms;
+    }
+
+    .mv-search-trigger:hover {
+      border-color: var(--mv-rule-strong);
+      color: var(--mv-ink);
+    }
+
+    .mv-search-trigger span {
+      flex: 1;
+    }
+
+    /* ===== Layout ===== */
+    .mv-layout {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      min-height: calc(100vh - 64px);
+    }
+
+    /* ===== Sidebar ===== */
+    .mv-sidebar {
+      border-right: 1px solid var(--mv-rule);
+      padding: 24px 16px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      position: sticky;
+      top: 64px;
+      align-self: start;
+      max-height: calc(100vh - 64px);
+      overflow-y: auto;
+    }
+
+    .mv-sidebar-section {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .mv-sidebar-cat {
+      font-family: var(--mv-font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--mv-ink-faint);
+      padding: 8px 8px 6px;
+      margin-top: 6px;
+    }
+
+    .mv-sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 8px;
+      border-radius: 4px;
+      font-size: 14px;
+      color: var(--mv-ink-soft);
+      transition: background 100ms, color 100ms;
+    }
+
+    .mv-sidebar-link:hover {
+      background: var(--mv-surface-2);
+      color: var(--mv-ink);
+    }
+
+    .mv-sidebar-link.is-active {
+      color: var(--mv-ink);
+      font-weight: 600;
+      background: var(--mv-surface-2);
+    }
+
+    .mv-sidebar-link.is-active .mv-sidebar-bullet {
+      background: var(--mv-accent);
+      transform: scale(1.4);
+    }
+
+    .mv-sidebar-bullet {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--mv-rule-strong);
+      flex: 0 0 auto;
+      transition: transform 120ms, background 120ms;
+    }
+
+    .mv-sidebar-foot {
+      margin-top: auto;
+      padding: 12px 8px 0;
+      border-top: 1px solid var(--mv-rule);
+    }
+
+    .mv-sidebar-foot-row {
+      font-family: var(--mv-font-mono);
+      font-size: 10px;
+      color: var(--mv-ink-faint);
+      display: flex;
+      gap: 6px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ===== Main + content ===== */
+    .mv-main {
+      min-width: 0;
+    }
+
+    .mv-page {
+      max-width: var(--mv-content-w);
+      margin: 0 auto;
+      padding: 56px 48px 96px;
+    }
+
+    .mv-eyebrow {
+      font-family: var(--mv-font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--mv-accent);
+      margin-bottom: 16px;
+    }
+
+    .mv-h1 {
+      font-family: var(--mv-font-display);
+      font-weight: 600;
+      font-size: 44px;
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      color: var(--mv-ink);
+      text-wrap: pretty;
+      max-width: 18ch;
+    }
+
+    .mv-h1 em {
+      font-family: var(--mv-font-mono);
+      font-style: normal;
+      font-size: 0.6em;
+      font-weight: 500;
+      background: var(--mv-accent-soft);
+      color: var(--mv-accent);
+      padding: 0.1em 0.4em;
+      border-radius: 4px;
+      vertical-align: 0.18em;
+      letter-spacing: 0;
+    }
+
+    .mv-h2 {
+      font-family: var(--mv-font-display);
+      font-weight: 600;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+      color: var(--mv-ink);
+    }
+
+    .mv-lede {
+      margin-top: 20px;
+      font-size: 17px;
+      line-height: 1.55;
+      color: var(--mv-ink-soft);
+      max-width: 56ch;
+    }
+
+    .mv-lede kbd {
+      font-size: 11px;
+    }
+
+    /* ===== Search palette ===== */
+    .mv-palette-backdrop {
+      position: fixed;
+      inset: 0;
+      background: color-mix(in oklab, #000, transparent 40%);
+      z-index: 100;
+      display: none;
+      justify-content: center;
+      padding-top: 12vh;
+      backdrop-filter: blur(3px);
+    }
+
+    .mv-palette-backdrop.is-open {
+      display: flex;
+      animation: mvFade 140ms ease-out;
+    }
+
+    @keyframes mvFade {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .mv-palette {
+      width: min(560px, 90%);
+      height: max-content;
+      background: var(--mv-surface);
+      border: 1px solid var(--mv-rule-strong);
+      border-radius: 8px;
+      box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.5), 0 4px 8px -2px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mv-palette-input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--mv-rule);
+      color: var(--mv-ink-faint);
+    }
+
+    .mv-palette-input-row input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      font: inherit;
+      font-size: 16px;
+      color: var(--mv-ink);
+      font-family: var(--mv-font-body);
+    }
+
+    .mv-palette-input-row input::placeholder {
+      color: var(--mv-ink-faint);
+    }
+
+    .mv-palette-results {
+      max-height: 360px;
+      overflow-y: auto;
+      padding: 6px;
+    }
+
+    .mv-palette-section-label {
+      font-family: var(--mv-font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--mv-ink-faint);
+      padding: 10px 10px 6px;
+    }
+
+    .mv-palette-empty {
+      padding: 28px 12px;
+      text-align: center;
+      color: var(--mv-ink-soft);
+      font-size: 14px;
+    }
+
+    .mv-palette-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 4px;
+      transition: background 80ms;
+    }
+
+    .mv-palette-row.is-active {
+      background: var(--mv-accent-soft);
+    }
+
+    .mv-palette-row.is-active .mv-palette-row-arrow {
+      color: var(--mv-accent);
+      opacity: 1;
+    }
+
+    .mv-palette-row-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .mv-palette-row-title {
+      font-family: var(--mv-font-display);
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--mv-ink);
+    }
+
+    .mv-palette-row-summary {
+      font-size: 12.5px;
+      color: var(--mv-ink-soft);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: var(--mv-font-mono);
+    }
+
+    .mv-palette-row-arrow {
+      font-family: var(--mv-font-mono);
+      font-size: 13px;
+      color: var(--mv-ink-faint);
+      opacity: 0;
+    }
+
+    .mv-palette-foot {
+      display: flex;
+      gap: 16px;
+      padding: 10px 16px;
+      border-top: 1px solid var(--mv-rule);
+      font-size: 11px;
+      color: var(--mv-ink-faint);
+    }
+
+    .mv-palette-foot kbd {
+      margin-right: 4px;
+      font-size: 9.5px;
+      padding: 1px 4px;
+    }
+
+    /* ===== Buttons ===== */
+    .mv-btn {
+      padding: 9px 14px;
+      border: 1px solid var(--mv-rule-strong);
+      border-radius: var(--mv-radius);
+      background: var(--mv-surface);
+      color: var(--mv-ink);
+      font-size: 14px;
+      font-family: var(--mv-font-body);
+      transition: background 120ms, border-color 120ms;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mv-btn:hover {
+      background: var(--mv-surface-2);
+    }
+
+    .mv-btn-primary {
+      background: var(--mv-ink);
+      color: var(--mv-bg);
+      border-color: var(--mv-ink);
+    }
+
+    .mv-btn-primary:hover {
+      opacity: 0.92;
+      background: var(--mv-ink);
+    }
+
+    /* ===== Block-specific styles loaded by index/document templates ===== */
+      {
+      % block extra_styles %
+    }
+
+      {
+      % endblock %
+    }
   </style>
 </head>
+
 <body>
-  <header>
-    <a href="/">Markdown Docs</a>
+  <header class="mv-header">
+    <a href="/" class="mv-brand" aria-label="Docshelf home">
+      <span class="mv-brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 4h10l4 4v12H5z" />
+          <path d="M15 4v4h4" />
+          <path d="M8 12h8M8 16h6" />
+        </svg>
+      </span>
+      <span class="mv-brand-text">
+        <span class="mv-brand-title">Docshelf</span>
+      </span>
+    </a>
+    <div class="mv-header-spacer"></div>
+    <button type="button" class="mv-search-trigger" data-mv-search-open aria-label="Open search">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3-3" />
+      </svg>
+      <span>Search docs</span>
+      <kbd>⌘K</kbd>
+    </button>
   </header>
-  <main>
-    {% block content %}{% endblock %}
-  </main>
+
+  <div class="mv-layout">
+    <nav class="mv-sidebar" aria-label="Documents">
+      <div class="mv-sidebar-section">
+        <div class="mv-sidebar-cat">Library</div>
+        <a class="mv-sidebar-link {% if request.path == '/' %}is-active{% endif %}" href="/">
+          <span class="mv-sidebar-bullet"></span>
+          All documents
+        </a>
+      </div>
+
+      {% if documents %}
+      <div class="mv-sidebar-section">
+        <div class="mv-sidebar-cat">Documents</div>
+        {% for doc in documents %}
+        <a class="mv-sidebar-link {% if doc.slug == current_doc %}is-active{% endif %}"
+          href="{% url 'document' doc.slug %}">
+          <span class="mv-sidebar-bullet"></span>
+          {{ doc.title }}
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="mv-sidebar-foot">
+        <div class="mv-sidebar-foot-row">
+          <span>Docshelf</span>
+          <span>·</span>
+          <span>v{{ APP_VERSION }}</span>
+        </div>
+      </div>
+    </nav>
+
+    <main class="mv-main">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  {# ---------- Search palette ---------- #}
+  <div class="mv-palette-backdrop" data-mv-palette role="dialog" aria-modal="true" aria-label="Search">
+    <div class="mv-palette" data-mv-palette-inner>
+      <div class="mv-palette-input-row">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3-3" />
+        </svg>
+        <input type="text" data-mv-palette-input placeholder="Search documents…" autocomplete="off" spellcheck="false">
+        <kbd>esc</kbd>
+      </div>
+      <div class="mv-palette-results" data-mv-palette-results></div>
+      <div class="mv-palette-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+        <span><kbd>↵</kbd> open</span>
+        <span><kbd>esc</kbd> close</span>
+      </div>
+    </div>
+  </div>
+
+  {# ---------- Search index — list of docs serialized to JSON ---------- #}
+  <script type="application/json" id="mv-doc-index">
+    [{% for doc in documents %}{"slug": "{{ doc.slug|escapejs }}", "title": "{{ doc.title|escapejs }}", "url": "{% url 'document' doc.slug %}", "tags": [{% for tag in doc.tags %}"{{ tag|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}]}{% if not forloop.last %},{% endif %}{% endfor %}]
+  </script>
+
+  {# ---------- Client-side search palette ---------- #}
+  <script src="{% static 'markdown_viewer/search.js' %}"></script>
+
+  {% block extra_scripts %}{% endblock %}
 </body>
+
 </html>

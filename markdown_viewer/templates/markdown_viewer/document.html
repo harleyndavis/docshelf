@@ -1,12 +1,308 @@
 {% extends "markdown_viewer/base.html" %}
+{% load static %}
 
-{% block title %}{{ title }} — Markdown Docs{% endblock %}
+{% comment %}
+=================================================================
+Atelier — Document view
+-----------------------------------------------------------------
+Drop-in replacement for document.html. Reads:
+- title (string, required)
+- content (HTML string, required, marked |safe)
+- documents (list, optional — used by sidebar in base.html)
 
-{% block content %}
-<p class="back-nav">
-  <a href="/">&larr; All documents</a>
-</p>
-<article class="prose">
-  {{ content|safe }}
-</article>
-{% endblock %}
+Optionally consumes:
+- doc.updated, doc.read_time, doc.category
+(if your view promotes the doc dict into context as `doc`)
+
+The right-rail TOC is built client-side from <h2>/<h3> tags in
+    the rendered content — no view changes required.
+    =================================================================
+    {% endcomment %}
+
+    {% block title %}{{ title }} — Docshelf{% endblock %}
+
+    {% block extra_styles %}
+    {{ pygments_css|safe }}
+    .mv-doc {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 220px;
+    gap: 64px;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 56px 48px 120px;
+    }
+
+    .mv-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mv-font-mono);
+    font-size: 12px;
+    color: var(--mv-ink-faint);
+    margin-bottom: 24px;
+    letter-spacing: 0.04em;
+    transition: color 120ms;
+    }
+    .mv-back:hover { color: var(--mv-accent); }
+
+    .mv-article { min-width: 0; }
+
+    .mv-doc-meta {
+    margin-top: 16px;
+    font-family: var(--mv-font-mono);
+    font-size: 11.5px;
+    color: var(--mv-ink-faint);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    letter-spacing: 0.04em;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--mv-rule);
+    }
+
+    /* ===== Prose styles (applied to .prose container the view injects) ===== */
+    .prose {
+    margin-top: 32px;
+    font-size: 17px;
+    line-height: 1.75;
+    color: var(--mv-ink);
+    }
+    .prose p, .prose ul, .prose ol, .prose pre, .prose blockquote, .prose table { margin: 1.1em 0; }
+    .prose p { text-wrap: pretty; }
+
+    .prose h1 {
+    font-family: var(--mv-font-display);
+    font-weight: 600;
+    font-size: 32px;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin: 1.6em 0 0.4em;
+    color: var(--mv-ink);
+    }
+    .prose h2 {
+    font-family: var(--mv-font-display);
+    font-weight: 600;
+    font-size: 24px;
+    letter-spacing: -0.015em;
+    margin: 2em 0 0.4em;
+    scroll-margin-top: 80px;
+    color: var(--mv-ink);
+    }
+    .prose h2::before {
+    content: "§";
+    color: var(--mv-ink-faint);
+    font-family: var(--mv-font-mono);
+    font-size: 0.65em;
+    margin-right: 12px;
+    vertical-align: 0.18em;
+    font-weight: 400;
+    }
+    .prose h3 {
+    font-family: var(--mv-font-display);
+    font-weight: 600;
+    font-size: 19px;
+    letter-spacing: -0.01em;
+    margin: 1.6em 0 0.3em;
+    scroll-margin-top: 80px;
+    color: var(--mv-ink);
+    }
+    .prose h4 {
+    font-family: var(--mv-font-display);
+    font-weight: 600;
+    font-size: 16px;
+    margin: 1.4em 0 0.3em;
+    }
+
+    .prose ul, .prose ol { padding-left: 24px; }
+    .prose li { margin: 0.4em 0; }
+    .prose li::marker { color: var(--mv-ink-faint); }
+
+    .prose a {
+    color: var(--mv-accent);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in oklch, var(--mv-accent), transparent 60%);
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+    }
+    .prose a:hover { text-decoration-color: var(--mv-accent); }
+
+    .prose code {
+    font-family: var(--mv-font-mono);
+    font-size: 0.86em;
+    background: var(--mv-code-bg);
+    color: var(--mv-code-ink);
+    padding: 0.12em 0.4em;
+    border-radius: 4px;
+    letter-spacing: -0.01em;
+    }
+
+    .prose pre {
+    background: var(--mv-pre-bg);
+    color: var(--mv-pre-ink);
+    padding: 20px 22px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: var(--mv-font-mono);
+    font-size: 13px;
+    line-height: 1.6;
+    border: 1px solid var(--mv-rule);
+    }
+    .prose pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+    font-size: 1em;
+    }
+
+    .prose blockquote {
+    border-left: 2px solid var(--mv-accent);
+    background: var(--mv-quote-bg);
+    padding: 14px 20px;
+    font-style: italic;
+    color: var(--mv-ink-soft);
+    border-radius: 0 var(--mv-radius) var(--mv-radius) 0;
+    }
+
+    .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14.5px;
+    }
+    .prose th, .prose td {
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--mv-rule);
+    }
+    .prose th {
+    font-family: var(--mv-font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mv-ink-faint);
+    font-weight: 500;
+    border-bottom: 1px solid var(--mv-rule-strong);
+    }
+
+    .prose img { max-width: 100%; height: auto; border-radius: var(--mv-radius); }
+    .prose hr { border: none; border-top: 1px solid var(--mv-rule); margin: 2em 0; }
+
+    /* ===== Doc footer ornament ===== */
+    .mv-doc-foot { margin-top: 72px; }
+    .mv-doc-foot-line {
+    height: 1px;
+    background: var(--mv-rule);
+    position: relative;
+    }
+    .mv-doc-foot-line::before {
+    content: "❦";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--mv-bg);
+    padding: 0 14px;
+    color: var(--mv-ink-faint);
+    font-size: 16px;
+    }
+    .mv-doc-foot-text {
+    margin-top: 20px;
+    text-align: center;
+    font-family: var(--mv-font-mono);
+    font-size: 11px;
+    color: var(--mv-ink-faint);
+    letter-spacing: 0.04em;
+    }
+
+    /* ===== TOC ===== */
+    .mv-toc {
+    position: sticky;
+    top: 88px;
+    align-self: start;
+    font-size: 13px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    }
+    .mv-toc-label {
+    font-family: var(--mv-font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--mv-ink-faint);
+    margin-bottom: 12px;
+    }
+    .mv-toc ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; }
+    .mv-toc-link {
+    display: block;
+    width: 100%;
+    padding: 6px 0 6px 14px;
+    border-left: 1px solid var(--mv-rule);
+    color: var(--mv-ink-faint);
+    font-size: 13px;
+    line-height: 1.35;
+    cursor: pointer;
+    transition: border-color 120ms, color 120ms;
+    background: none;
+    text-align: left;
+    font-family: var(--mv-font-body);
+    }
+    .mv-toc-link.is-h3 { padding-left: 26px; font-size: 12px; }
+    .mv-toc-link:hover { color: var(--mv-ink-soft); }
+    .mv-toc-link.is-active {
+    color: var(--mv-accent);
+    border-left-color: var(--mv-accent);
+    font-weight: 600;
+    }
+    .mv-toc-empty {
+    font-family: var(--mv-font-mono);
+    font-size: 11px;
+    color: var(--mv-ink-faint);
+    padding: 6px 0 6px 14px;
+    border-left: 1px solid var(--mv-rule);
+    }
+
+    @media (max-width: 960px) {
+    .mv-doc { grid-template-columns: 1fr; gap: 32px; }
+    .mv-toc { position: static; max-height: none; }
+    }
+    {% endblock %}
+
+    {% block content %}
+    <div class="mv-doc">
+      <article class="mv-article">
+        <a href="/" class="mv-back">← All documents</a>
+
+        <div class="mv-eyebrow">{% if doc_meta.category %}{{ doc_meta.category }}{% else %}Document{% endif %}</div>
+        <h1 class="mv-h1">{% if doc_meta.title %}{{ doc_meta.title }}{% else %}{{ title }}{% endif %}</h1>
+
+        <div class="mv-doc-meta">
+          {% if doc_meta.updated %}<span>Updated {{ doc_meta.updated }}</span>{% endif %}
+          {% if doc_meta.updated and doc_meta.read_time %}<span>·</span>{% endif %}
+          {% if doc_meta.read_time %}<span>{{ doc_meta.read_time }} min read</span>{% endif %}
+          {% if not doc_meta.updated and not doc_meta.read_time %}<span>{{ title }}.md</span>{% endif %}
+        </div>
+
+        <div class="prose" data-mv-prose>
+          {{ content|safe }}
+        </div>
+
+        <div class="mv-doc-foot">
+          <div class="mv-doc-foot-line"></div>
+          <div class="mv-doc-foot-text">
+            End of <em>{% if doc_meta.title %}{{ doc_meta.title }}{% else %}{{ title }}{% endif %}</em>{% if
+            doc_meta.updated %} · last edited {{ doc_meta.updated }}{% endif %}.
+          </div>
+        </div>
+      </article>
+
+      <aside class="mv-toc" aria-label="On this page">
+        <div class="mv-toc-label">On this page</div>
+        <ul data-mv-toc>
+          <li><span class="mv-toc-empty">Building…</span></li>
+        </ul>
+      </aside>
+    </div>
+    {% endblock %}
+
+    {% block extra_scripts %}
+    <script src="{% static 'markdown_viewer/toc.js' %}"></script>
+    {% endblock %}

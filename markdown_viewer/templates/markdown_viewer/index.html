@@ -1,18 +1,181 @@
 {% extends "markdown_viewer/base.html" %}
+{% load static %}
 
-{% block title %}Markdown Docs{% endblock %}
+{% comment %}
+=================================================================
+Atelier — Index
+-----------------------------------------------------------------
+Drop-in replacement for index.html. Reads `documents` (list of
+slugs) from the existing view. If your view is upgraded later to
+pass richer per-doc metadata (summary, updated, category), the
+template will use it; otherwise it falls back to slug-only.
+
+Expected richer shape (optional):
+documents = [
+{"slug": "...", "title": "...", "summary": "...",
+"category": "...", "updated": "Apr 22, 2026",
+"read_time": 4},
+...
+]
+=================================================================
+{% endcomment %}
+
+{% block title %}Docshelf{% endblock %}
+
+{% block extra_styles %}
+.mv-tag-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+.mv-tag {
+font-family: var(--mv-font-mono);
+font-size: 11px;
+padding: 3px 10px;
+border: 1px solid var(--mv-rule-strong);
+border-radius: 99px;
+color: var(--mv-ink-faint);
+background: none;
+cursor: pointer;
+letter-spacing: 0.04em;
+transition: background 120ms, color 120ms, border-color 120ms;
+}
+.mv-tag:hover { color: var(--mv-ink); border-color: var(--mv-ink-soft); }
+.mv-tag.is-active { background: var(--mv-ink); color: var(--mv-bg); border-color: var(--mv-ink); }
+
+.mv-section { margin-top: 48px; }
+.mv-section-head {
+display: flex;
+align-items: baseline;
+justify-content: space-between;
+border-bottom: 1px solid var(--mv-rule);
+padding-bottom: 10px;
+margin-bottom: 20px;
+}
+.mv-section-meta {
+font-family: var(--mv-font-mono);
+font-size: 11px;
+color: var(--mv-ink-faint);
+letter-spacing: 0.04em;
+}
+
+.mv-doc-list { list-style: none; margin: 0; padding: 0; }
+.mv-doc-row {
+display: flex;
+align-items: center;
+flex-wrap: nowrap;
+gap: 24px;
+width: 100%;
+padding: 12px 8px;
+border-bottom: 1px solid var(--mv-rule);
+transition: padding-left 120ms, background 120ms;
+text-decoration: none;
+color: inherit;
+}
+.mv-doc-row:hover {
+padding-left: 16px;
+background: var(--mv-surface);
+}
+.mv-doc-row:hover .mv-arrow { transform: translateX(3px); opacity: 1; color: var(--mv-accent); }
+.mv-doc-row-title {
+flex-shrink: 0;
+font-family: var(--mv-font-display);
+font-weight: 600;
+font-size: 15px;
+color: var(--mv-ink);
+letter-spacing: -0.01em;
+white-space: nowrap;
+}
+.mv-doc-row-summary {
+flex: 1;
+min-width: 0;
+font-size: 13px;
+color: var(--mv-ink-faint);
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+padding-left: 20px;
+}
+.mv-doc-row-aside {
+flex-shrink: 0;
+margin-left: auto;
+display: flex;
+align-items: center;
+gap: 16px;
+font-family: var(--mv-font-mono);
+font-size: 11px;
+color: var(--mv-ink-faint);
+white-space: nowrap;
+}
+.mv-arrow {
+font-size: 13px;
+opacity: 0.4;
+transition: transform 120ms, opacity 120ms, color 120ms;
+}
+.mv-empty {
+margin-top: 48px;
+padding: 32px;
+border: 1px dashed var(--mv-rule-strong);
+border-radius: var(--mv-radius);
+color: var(--mv-ink-soft);
+font-size: 14px;
+text-align: center;
+}
+.mv-empty code {
+font-family: var(--mv-font-mono);
+background: var(--mv-code-bg);
+color: var(--mv-code-ink);
+padding: 0.12em 0.4em;
+border-radius: 4px;
+font-size: 0.9em;
+}
+{% endblock %}
 
 {% block content %}
-<h1 class="page-title">Documents</h1>
-{% if documents %}
-  <ul class="doc-list">
-    {% for doc in documents %}
-    <li>
-      <a href="{% url 'document' doc %}">{{ doc }}</a>
-    </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p style="color: #666;">No documents found. Add <code>.md</code> files to the <code>docs/</code> directory.</p>
-{% endif %}
+<div class="mv-page">
+  <div class="mv-eyebrow">Personal knowledge base</div>
+  <h1 class="mv-h1">A small library of things worth remembering.</h1>
+  <p class="mv-lede">
+    {% if documents %}
+    {{ documents|length }} document{{ documents|length|pluralize }} in this workspace.
+    Press <kbd>⌘K</kbd> to jump to anything.
+    {% else %}
+    No documents yet — drop a few <code>.md</code> files into the <code>docs/</code> folder to get started.
+    {% endif %}
+  </p>
+
+  {% if documents %}
+  {% if all_tags %}
+  <div class="mv-tag-bar">
+    <button class="mv-tag is-active" data-tag="">All</button>
+    {% for tag in all_tags %}<button class="mv-tag" data-tag="{{ tag }}">{{ tag }}</button>{% endfor %}
+  </div>
+  {% endif %}
+  <section class="mv-section">
+    <div class="mv-section-head">
+      <h2 class="mv-h2">All documents</h2>
+      <span class="mv-section-meta">{{ documents|length }} total</span>
+    </div>
+    <ul class="mv-doc-list">
+      {% for info in doc_infos %}
+      <li data-tags="{{ info.tags|join:',' }}">
+        <a class="mv-doc-row" href="{% url 'document' info.slug %}">
+          <span class="mv-doc-row-title">{{ info.title }}</span>
+          {% if info.summary %}<span class="mv-doc-row-summary">{{ info.summary }}</span>{% endif %}
+          <div class="mv-doc-row-aside">
+            {% if info.updated %}<span>{{ info.updated }}</span>{% endif %}
+            {% if info.read_time %}<span>{{ info.read_time }} min</span>{% endif %}
+            <span class="mv-arrow">→</span>
+          </div>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% else %}
+  <div class="mv-empty">
+    No documents found. Add <code>.md</code> files to the <code>docs/</code> directory and refresh.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'markdown_viewer/filter.js' %}"></script>
 {% endblock %}
