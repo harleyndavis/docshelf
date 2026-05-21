@@ -16,6 +16,9 @@ Built with Django and runs in Docker.
 
 - Renders markdown files from a local `docs/` directory
 - Clean, readable layout with syntax-highlighted code blocks
+- Command palette search — press `⌘K` / `Ctrl+K` to jump to any document
+- Tag-based filtering on the document index
+- Auto-generated table of contents in each document view
 - No database, no accounts, no configuration files — just files
 - Serves over your local network out of the box
 
@@ -100,7 +103,7 @@ DJANGO_SECRET_KEY=test-key .venv/bin/python.exe -m django test markdown_viewer.t
 
 ## Document metadata
 
-Documents can include optional YAML frontmatter to provide richer display in the index and document views:
+Documents can include optional YAML frontmatter to control how they appear in the index and document views.
 
 ```markdown
 ---
@@ -109,12 +112,31 @@ category: Notes
 summary: A short description shown in the document list.
 updated: 2026-05-07
 read_time: 3
+tags: [notes, howto, reference]
 ---
 
 # Content starts here
 ```
 
-All fields are optional. Without frontmatter, the filename slug is used as the title and no metadata is shown.
+All fields are optional. The table below describes each supported field:
+
+| Field | Type | Where it appears | Falls back to |
+|---|---|---|---|
+| `title` | string | Document heading, index list, sidebar, browser tab | Prettified filename slug |
+| `category` | string | Eyebrow label above the document title | — |
+| `summary` | string | Subtitle row in the document index | — |
+| `updated` | date (`YYYY-MM-DD`) | Index list and document footer | File modification date |
+| `read_time` | integer (minutes) | Index list and document header | Calculated from word count (÷ 275, minimum 1 min) |
+| `tags` | list | Filter bar on the index; included in search | — |
+
+Tags can be written as a YAML list or a comma-separated string:
+
+```yaml
+tags: [notes, howto, reference]   # list form
+tags: notes, howto, reference     # string form — both are equivalent
+```
+
+Without frontmatter the filename slug is used as the title and no metadata is shown.
 
 ## Notes
 
